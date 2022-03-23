@@ -23,7 +23,8 @@ origins = [
     "http://localhost:8080",
     "http://localhost:8081",
     "http://localhost:8888",
-    "http://developer-activity-console"
+    "http://developer-activity-console",
+    "*"
 ]
 
 app.add_middleware(
@@ -39,18 +40,18 @@ CK_PORT = os.environ.get('CK_PORT')
 CK_USER = os.environ.get('CK_USER')
 CK_PASS = os.environ.get('CK_PASS')
 CK_DB = os.environ.get('CK_DB')
+CK_TABLE = os.environ.get('CK_TABLE')
 
 ck_server = CKServer(CK_HOST, CK_PORT, CK_USER, CK_PASS, CK_DB)
 
 
 def ensure_table_exist():
-    print(CREATE_TABLE_SQL)
     ck_server.execute_no_params(CREATE_TABLE_SQL)
 
 
 @app.get('/tokens/list', response_model=list[GitHubToken])
 async def list_tokens():
-    list_tokens_sql = f"SELECT * from {CK_DB}"
+    list_tokens_sql = f"SELECT * from {CK_TABLE}"
     result = ck_server.execute_no_params(list_tokens_sql)
 
     tokens = []
@@ -69,13 +70,23 @@ async def list_tokens():
 
 @app.post("/tokens/upload")
 async def upload_tokens(tokens: list[GitHubToken]):
-    print(tokens)
-    values = [(t.account, t.token, t.limit, t.status) for t in tokens]
-    result = ck_server.execute(f'INSERT INTO {CK_DB} VALUES ', values)
-    print(f'INSERT INTO {CK_DB} VALUES ', values)
+    duplicated = []
+    inserted = []
+    num_inserted = 0
+    for t in tokens:
+        result = ck_server.execute_no_params(f"SELECT count() FROM {CK_TABLE} WHERE token = '{t.token}'")
+        if result[0][0] > 0:
+            duplicated.append(t.token)
+            continue
+        num_inserted += ck_server.execute(f'INSERT INTO {CK_TABLE} VALUES ', [(t.account, t.token, t.limit, t.status)])
+        inserted.append(t.token)
 
-    print(result)
-    return 'ok'
+    res_obj = {
+        'num_inserted': num_inserted,
+        'duplicated': duplicated,
+        'inserted': inserted
+    }
+    return res_obj
 
 
 if __name__ == "__main__":
