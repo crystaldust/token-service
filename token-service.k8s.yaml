@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: token-service
+spec:
+  selector:
+    matchLabels:
+      app: token-service
+  replicas: 1 # tells deployment to run 2 pods matching the template
+  template:
+    metadata:
+      labels:
+        app: token-service
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: workingnode
+                operator: In
+                values: ["true"]
+      containers:
+      - name: token-service
+        image: airflowjobs/token-service:latest
+        imagePullPolicy: Always
+        #command: ["python", "/root/token-service/app.py"]
+        ports:
+        - containerPort: 8000
+        env:
+        - name: LOG_LEVEL
+          value: "DEBUG"
+        - name: CK_HOST
+          value: clickhouse-repl-05
+        - name: CK_PORT
+          value: "9000"
+        - name: CK_USER
+          value: clickhouse_operator
+        - name: CK_PASS
+          value: clickhouse_operator_password
+        - name: CK_DB
+          value: default
+        - name: CK_TABLE
+          value: github_tokens
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: token-service
+  labels:
+    run: token-service
+spec:
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+  # externalIPs:
+  #   - 172.18.83.34
+#    - 172.18.83.35
+#    - 172.18.83.36
+
+  selector:
+    app: token-service
+
