@@ -42,6 +42,8 @@ spec:
           value: default
         - name: CK_TABLE
           value: github_tokens
+        - name: CK_CLUSTER
+          value: replicated
 
 ---
 
