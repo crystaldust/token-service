@@ -3,7 +3,6 @@ RUN apk add gcc musl-dev
 ADD ck.py /project/
 ADD main.py /project/
 ADD requirements.txt /project/
-ADD sqls.py /project/
 WORKDIR /project/
 
 RUN pip install -r ./requirements.txt
