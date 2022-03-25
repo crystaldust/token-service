@@ -53,10 +53,10 @@ redis_cli = Redis(
     host=REDIS_HOST,
     port=REDIS_PORT,
     password=REDIS_PASS,
+    username=REDIS_USER,
     decode_responses=True)
 
 all_keys = redis_cli.keys('*')
-print(all_keys)
 
 
 @app.get('/tokens/list', response_model=list[GitHubToken])
